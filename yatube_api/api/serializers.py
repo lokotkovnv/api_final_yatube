@@ -1,23 +1,68 @@
 from rest_framework import serializers
-from rest_framework.relations import SlugRelatedField
+from rest_framework.validators import UniqueTogetherValidator
 
-
-from posts.models import Comment, Post
-
-
-class PostSerializer(serializers.ModelSerializer):
-    author = SlugRelatedField(slug_field='username', read_only=True)
-
-    class Meta:
-        fields = '__all__'
-        model = Post
+from posts.models import Comment, Post, Group, Follow, User
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    author = serializers.SlugRelatedField(
-        read_only=True, slug_field='username'
-    )
+    post = serializers.PrimaryKeyRelatedField(read_only=True)
+    author = serializers.StringRelatedField(
+        read_only=True, default=serializers.CurrentUserDefault())
 
     class Meta:
-        fields = '__all__'
         model = Comment
+        fields = ('id', 'author', 'post', 'text', 'created')
+
+
+class GroupSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Group
+        fields = ('id', 'title', 'slug', 'description')
+
+
+class FollowSerializer(serializers.ModelSerializer):
+    user = serializers.SlugRelatedField(
+        queryset=User.objects.all(),
+        slug_field="username",
+        default=serializers.CurrentUserDefault(),
+    )
+    following = serializers.SlugRelatedField(
+        queryset=User.objects.all(),
+        slug_field="username",
+        default=serializers.CurrentUserDefault(),
+    )
+
+    def validate(self, data):
+        user = data['user']
+        following = data['following']
+
+        if user == following:
+            raise serializers.ValidationError(
+                ('Вы не можете подписаться на самого себя.')
+            )
+
+        return data
+
+    class Meta:
+        model = Follow
+        fields = ('user', 'following')
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Follow.objects.all(),
+                fields=['user', 'following'],
+                message=('Вы уже подписаны на этого пользователя.')
+            )
+        ]
+
+
+class PostSerializer(serializers.ModelSerializer):
+    comments = CommentSerializer(many=True, required=False)
+    author = serializers.StringRelatedField(
+        read_only=True, default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = Post
+        fields = (
+            'id', 'text', 'pub_date', 'author', 'image', 'group', 'comments'
+        )
