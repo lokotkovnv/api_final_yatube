@@ -4,8 +4,8 @@ from rest_framework.validators import UniqueTogetherValidator
 from posts.models import Comment, Post, Group, Follow, User
 
 
-SELFFOLLOWERROR = 'Вы не можете подписаться на самого себя.'
-UNIQUEFOLLOWERROR = 'Вы уже подписаны на этого пользователя.'
+SELF_FOLLOW_ERROR = 'Вы не можете подписаться на самого себя.'
+UNIQUE_FOLLOW_ERROR = 'Вы уже подписаны на этого пользователя.'
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -43,7 +43,7 @@ class FollowSerializer(serializers.ModelSerializer):
 
         if user == following:
             raise serializers.ValidationError(
-                (SELFFOLLOWERROR)
+                (SELF_FOLLOW_ERROR)
             )
 
         return data
@@ -55,7 +55,7 @@ class FollowSerializer(serializers.ModelSerializer):
             UniqueTogetherValidator(
                 queryset=Follow.objects.all(),
                 fields=('user', 'following'),
-                message=UNIQUEFOLLOWERROR
+                message=UNIQUE_FOLLOW_ERROR
             ),
         )
 
