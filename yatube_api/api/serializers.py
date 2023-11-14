@@ -4,6 +4,10 @@ from rest_framework.validators import UniqueTogetherValidator
 from posts.models import Comment, Post, Group, Follow, User
 
 
+SELFFOLLOWERROR = 'Вы не можете подписаться на самого себя.'
+UNIQUEFOLLOWERROR = 'Вы уже подписаны на этого пользователя.'
+
+
 class CommentSerializer(serializers.ModelSerializer):
     post = serializers.PrimaryKeyRelatedField(read_only=True)
     author = serializers.StringRelatedField(
@@ -24,12 +28,12 @@ class GroupSerializer(serializers.ModelSerializer):
 class FollowSerializer(serializers.ModelSerializer):
     user = serializers.SlugRelatedField(
         queryset=User.objects.all(),
-        slug_field="username",
+        slug_field='username',
         default=serializers.CurrentUserDefault(),
     )
     following = serializers.SlugRelatedField(
         queryset=User.objects.all(),
-        slug_field="username",
+        slug_field='username',
         default=serializers.CurrentUserDefault(),
     )
 
@@ -39,7 +43,7 @@ class FollowSerializer(serializers.ModelSerializer):
 
         if user == following:
             raise serializers.ValidationError(
-                ('Вы не можете подписаться на самого себя.')
+                (SELFFOLLOWERROR)
             )
 
         return data
@@ -47,13 +51,13 @@ class FollowSerializer(serializers.ModelSerializer):
     class Meta:
         model = Follow
         fields = ('user', 'following')
-        validators = [
+        validators = (
             UniqueTogetherValidator(
                 queryset=Follow.objects.all(),
-                fields=['user', 'following'],
-                message=('Вы уже подписаны на этого пользователя.')
-            )
-        ]
+                fields=('user', 'following'),
+                message=UNIQUEFOLLOWERROR
+            ),
+        )
 
 
 class PostSerializer(serializers.ModelSerializer):
